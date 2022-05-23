@@ -74,6 +74,12 @@ class CloserPlugin extends Plugin {
      * whatever. = Welcome to the 23rd Century. The perfect world of total
      * pleasure. ... there's just one catch.
      */
+	 /**
+	  * Date: 12.05.2022
+	  * Auther: Angel Andrades
+	  * Update: Added the check on "dont-update-closeddate" BooleanField
+	  *         Added the added the boulean $noupdate_closedate to "change_ticket_status" call
+	  */
     private function logans_run_mode() {
         $config = $this->getConfig();
         if ($this->is_time_to_run($config)) {
@@ -157,9 +163,18 @@ class CloserPlugin extends Plugin {
                         if ($admin_reply) {
                             $this->post_reply($ticket, $new_status, $admin_reply, $robot);
                         }
-
+					
+						// 12.05.2022- AAD - Verify if the option "Do not update Closed date" is checked
+						$noupdate_closedate = TRUE;
+						if (!$config->get('dont-update-closeddate-' . $group_id)) {
+							$noupdate_closedate = FALSE;
+						}
+					
                         // Actually change the ticket status
-                        $this->change_ticket_status($ticket, $new_status);
+//						$this->change_ticket_status($ticket, $new_status);
+						//12.05.2022- AAD - added the boulean $noupdate_closedate
+                        $this->change_ticket_status($ticket, $new_status, $noupdate_closedate);
+						
                     }
                 } catch (Exception $e) {
                     // Well, something borked
@@ -217,19 +232,30 @@ class CloserPlugin extends Plugin {
      * @param Ticket $ticket
      * @param TicketStatus $new_status
      */
-    private function change_ticket_status(Ticket $ticket, TicketStatus $new_status) {
+	 /**
+	  * Date: 10.05.2022 - 12.05.2022
+	  * Auther: Angel Andrades
+	  * Update: Added the check on "$noupdate_closedate" Boolean
+	  *
+	  */
+    private function change_ticket_status(Ticket $ticket, TicketStatus $new_status, $noupdate_closedate) {
+//	private function change_ticket_status(Ticket $ticket, TicketStatus $new_status) {
         if (self::DEBUG) {
             error_log(
                     "Setting status " . $new_status->getState() .
                     " for ticket {$ticket->getId()}::{$ticket->getSubject()}");
         }
 
-        // Start by setting the last update and closed timestamps to now
-        $ticket->closed = $ticket->lastupdate = SqlFunction::NOW();
-
-        // Remove any duedate or overdue flags
-        $ticket->duedate = null;
-        $ticket->clearOverdue(FALSE); // flag prevents saving, we'll do that
+		if ($noupdate_closedate) {
+			$ticket->lastupdate = SqlFunction::NOW();
+		} else {
+			// Start by setting the last update and closed timestamps to now
+			$ticket->closed = $ticket->lastupdate = SqlFunction::NOW();
+			// Remove any duedate or overdue flags
+			$ticket->duedate = null;
+			$ticket->clearOverdue(FALSE); // flag prevents saving, we'll do that
+		}
+		
         // Post an Event with the current timestamp.
         $ticket->logEvent($new_status->getState(), [
             'status' => [
@@ -501,11 +527,11 @@ PIECE;
      *
      * @see Plugin::uninstall()
      */
-    function uninstall() {
+    function uninstall(&$errors) {
         $errors = array();
         global $ost;
         // Send an alert to the system admin:
-        $ost->alertAdmin(self::PLUGIN_NAME . ' has been uninstalled', "You wanted that right?", true);
+        $ost->alertAdmin(self::PLUGIN_NAME . ' has been uninstalled', "You wanted that right?", TRUE);
 
         parent::uninstall($errors);
     }
