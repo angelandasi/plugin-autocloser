@@ -31,7 +31,7 @@ class CloserPluginConfig extends PluginConfig {
         return Plugin::translate('closer');
     }
 
-    function pre_save($config, &$errors) {
+    function pre_save(&$config, &$errors) {
         list ($__, $_N) = self::translate();
 
         // Validate the free-text fields of numerical configurations are in fact numerical..
@@ -63,6 +63,12 @@ class CloserPluginConfig extends PluginConfig {
      *
      * @see PluginConfig::getOptions()
      */
+	 /**
+	  * Date: 10.05.2022
+	  * Auther: Angel Andrades
+	  * Update: Added the "dont-update-closeddate" BooleanField
+	  *
+	  */
     function getOptions() {
         list ($__, $_N) = self::translate();
 
@@ -183,6 +189,12 @@ class CloserPluginConfig extends PluginConfig {
                     'default' => 3, // 3 == Open on mine.
                     'hint' => $__(
                             'When we change the ticket, what are we changing the status to? Default is "Closed"')
+                        ]),
+				'dont-update-closeddate-' . $i => new BooleanField(
+                        [
+                    'default' => TRUE,
+                    'label' => $__('Do not update Closed date'),
+                    'hint' => ''
                         ]),
                 'admin-note-' . $i => new TextareaField(
                         [
